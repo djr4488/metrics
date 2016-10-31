@@ -69,6 +69,10 @@ public class MetricsRegistryBean {
     private Boolean enableJvmCapture;
     @Inject
     private List<String> healthCheckNamesToRegister;
+    @Inject
+    private String appName;
+    @Inject
+    private String clusterName;
     private InetAddress address;
     @Inject
     private Logger log;
@@ -134,6 +138,7 @@ public class MetricsRegistryBean {
                     .outputTo(log)
                     .convertRatesTo(TimeUnit.SECONDS)
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
+                    .withLoggingLevel(Slf4jReporter.LoggingLevel.TRACE)
                     .build();
             slf4jReporter.start(slf4jReportFrequency, TimeUnit.SECONDS);
         }
@@ -147,10 +152,9 @@ public class MetricsRegistryBean {
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
                     .filter(MetricFilter.ALL)
                     .skipIdleMetrics(false)
-                    .tag("appName", System.getenv("VIRTUAL_HOST"))
-                    .tag("registryType", "method")
+                    .tag("appName", appName)
                     .tag("server", getLocalHostName())
-                    .tag("cluster", System.getenv("AWS_CLUSTER"))
+                    .tag("cluster", clusterName)
                     .transformer(new CategoriesMetricMeasurementTransformer("module", "artifact"))
                     .build();
             influxReporter.start(influxReportFrequency, TimeUnit.SECONDS);
