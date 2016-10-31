@@ -13,11 +13,9 @@ import org.eclipse.persistence.sessions.Record;
 import org.eclipse.persistence.sessions.Session;
 import org.eclipse.persistence.sessions.SessionProfilerAdapter;
 import org.eclipse.persistence.tools.profiler.Profile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import javax.enterprise.context.spi.CreationalContext;
-import javax.enterprise.inject.spi.Bean;
-import javax.enterprise.inject.spi.BeanManager;
-import javax.enterprise.inject.spi.CDI;
 import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -32,6 +30,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     protected Map<Integer, Map<String, Long>> operationTimingsByThread;
     protected Map<Integer, Map<String, Long>> operationStartTimesByThread;
     private MetricsRegistryBean metricsRegistryBean;
+    private Logger log = LoggerFactory.getLogger(EclipseLinkProfiler.class);
 
     public EclipseLinkProfiler() {
         this(false);
@@ -289,13 +288,9 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     public MetricsRegistryBean getMetricsRegistryBean() {
         if (null == metricsRegistryBean) {
             try {
-                BeanManager bm = CDI.current().getBeanManager();
-                Bean<MetricsRegistryBean> bean = (Bean<MetricsRegistryBean>) bm.getBeans("metricsRegistryBean").iterator().next();
-                CreationalContext<MetricsRegistryBean> ctx = bm.createCreationalContext(bean);
-                metricsRegistryBean = (MetricsRegistryBean) bm.getReference(bean, MetricsRegistryBean.class, ctx);
-                return metricsRegistryBean;
+                metricsRegistryBean = MetricsRegistryBean.getBeanByNameOfClass("metricsRegistryBean", MetricsRegistryBean.class);
             } catch (Exception ex) {
-                System.out.println(ex);
+                log.error("getMetricsRegistryBean()", ex);
             }
         }
         return metricsRegistryBean;

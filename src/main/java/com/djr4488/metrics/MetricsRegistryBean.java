@@ -70,7 +70,6 @@ public class MetricsRegistryBean {
     @Inject
     private List<String> healthCheckNamesToRegister;
     private InetAddress address;
-
     @Inject
     private Logger log;
 
@@ -86,25 +85,30 @@ public class MetricsRegistryBean {
     }
 
     private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
+        log.debug("buildHealthChecksToRegisterMap() entered");
         Map<String, HealthCheck> healthCheckMap = new HashMap<>();
         for (String healthCheckName : healthCheckNamesToRegister) {
-            healthCheckMap.put(healthCheckName, getHealthCheckBeanByName(healthCheckName));
+            HealthCheck hc = getHealthCheckBeanByName(healthCheckName);
+            if (null != hc) {
+                healthCheckMap.put(healthCheckName, hc);
+            }
         }
         return healthCheckMap;
     }
 
+    /**
+     * This method can return null but is used to find health checks by name
+     * @param healthCheckBeanName String
+     * @return HealthCheck
+     */
     @SuppressWarnings("unchecked")
-    public HealthCheck getHealthCheckBeanByName(String healthCheckBeanName) {
-        HealthCheck healthCheckBean = null;
+    private HealthCheck getHealthCheckBeanByName(String healthCheckBeanName) {
         try {
-            BeanManager bm = CDI.current().getBeanManager();
-            Bean<HealthCheck> bean = (Bean<HealthCheck>) bm.getBeans(healthCheckBeanName).iterator().next();
-            CreationalContext<HealthCheck> ctx = bm.createCreationalContext(bean);
-            healthCheckBean = (HealthCheck) bm.getReference(bean, HealthCheck.class, ctx);
+            return MetricsRegistryBean.getBeanByNameOfClass(healthCheckBeanName, HealthCheck.class);
         } catch (Exception ex) {
-            System.out.println(ex);
+            log.error("getHealthCheckBeanByName()", ex);
         }
-        return healthCheckBean;
+        return null;
     }
 
     private void initializeJvmMetrics() {
@@ -168,6 +172,16 @@ public class MetricsRegistryBean {
         } catch (UnknownHostException uhEx) {
             return System.getenv("VIRTUAL_HOST");
         }
+    }
+
+    public static <T> T getBeanByNameOfClass(String name, Class<T> clazz)
+    throws Exception {
+        T cdiBean;
+        BeanManager bm = CDI.current().getBeanManager();
+        Bean<T> bean = (Bean<T>) bm.getBeans(name).iterator().next();
+        CreationalContext<T> ctx = bm.createCreationalContext(bean);
+        cdiBean = (T) bm.getReference(bean, clazz, ctx);
+        return cdiBean;
     }
 }
 
