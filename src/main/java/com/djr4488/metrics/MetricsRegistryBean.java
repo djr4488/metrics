@@ -174,7 +174,7 @@ public class MetricsRegistryBean {
             address = InetAddress.getLocalHost();
             return address.getHostName();
         } catch (UnknownHostException uhEx) {
-            return System.getenv("VIRTUAL_HOST");
+            return appName;
         }
     }
 
