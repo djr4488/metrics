@@ -15,6 +15,7 @@ To provide a simplified mechanism for managing dropwizard metrics in a Java EE e
 * metrics-cdi; [https://github.com/astefanutti/metrics-cdi]
 * dropwizard-metrics; [https://github.com/dropwizard/metrics]
 * metrics-influxdb; [https://github.com/davidB/metrics-influxdb]
+* slf4j; 
 
 ## Usage
 
