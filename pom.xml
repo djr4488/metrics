@@ -146,5 +146,18 @@
             <version>2.6.0</version>
             <scope>provided</scope>
         </dependency>
+        <dependency xmlns="http://maven.apache.org/POM/4.0.0">
+             <groupId>org.apache.deltaspike.core</groupId>
+             <artifactId>deltaspike-core-api</artifactId>
+             <version>1.0.1</version>
+             <scope>compile</scope>
+        </dependency>
+
+<dependency xmlns="http://maven.apache.org/POM/4.0.0">
+    <groupId>org.apache.deltaspike.core</groupId>
+    <artifactId>deltaspike-core-impl</artifactId>
+    <version>1.0.1</version>
+    <scope>runtime</scope>
+</dependency>
     </dependencies>
 </project>
