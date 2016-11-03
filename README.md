@@ -23,6 +23,7 @@ To provide a simplified mechanism for managing dropwizard metrics in a Java EE e
 Configuration is done by having a metrics-config.properties file that can be picked up by Apache DeltaSpike configuration
 A configuration example is provided below;
 
+`
 influxUrl=<influxdb url goes here>
 influxPort=<influxdb port goes here>
 influxUsername=<influxdb username goes here>
@@ -36,5 +37,6 @@ enableInfluxReporter=<true if you want to send to influx, false otherwise>
 enableJvmCapture=<true if you want to capture jvm statistics, false otherwise>
 healthCheckNamesToRegister=<list of healthchecks you want to register, delimited by healthCheckNamesDelimiter>
 healthCheckNamesDelimiter=<delimiter to use for separating out the health check names>
+`
 applicationName=<name of your application>
 clusterName=<name of your cluster>
