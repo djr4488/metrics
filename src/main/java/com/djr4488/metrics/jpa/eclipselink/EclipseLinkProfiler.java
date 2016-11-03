@@ -5,7 +5,7 @@ package com.djr4488.metrics.jpa.eclipselink;
  * Credit is provided to EclispeLink PerformanceProfiler author(James Sutherland?), which is where most of this code came from.
  */
 import com.codahale.metrics.Timer;
-import com.djr4488.metrics.MetricsRegistryBean;
+import com.springventuregroup.dupestomper.metrics.MetricsRegistryBean;
 import org.eclipse.persistence.internal.sessions.AbstractRecord;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.queries.DatabaseQuery;
@@ -35,7 +35,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
         this.operationTimings = new ConcurrentHashMap();
         this.operationStartTimesByThread = new ConcurrentHashMap();
         this.profileWeight = SessionProfiler.ALL;
-        this.metricsRegistryBean = this.getMetricsRegistryBean();
+        //this.metricsRegistryBean = this.getMetricsRegistryBean();
     }
 
     public long getDumpTime() {
@@ -64,7 +64,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public void endOperationProfile(String operationName, DatabaseQuery databaseQuery) {
-        if (this.profileWeight < SessionProfiler.HEAVY) {
+        if (getSessionProfiler() < SessionProfiler.HEAVY) {
             return;
         }
         Long endTime = System.nanoTime();
@@ -92,7 +92,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public void endOperationProfile(String operationName, DatabaseQuery query, int weight) {
-        if (this.profileWeight < weight) {
+        if (getSessionProfiler() < weight) {
             return;
         }
         this.endOperationProfile(operationName, query);
@@ -125,7 +125,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public Object profileExecutionOfQuery(DatabaseQuery query, Record row, AbstractSession session) {
-        if (this.profileWeight < SessionProfiler.HEAVY) {
+        if (getSessionProfiler() < SessionProfiler.HEAVY) {
             return session.internalExecuteQuery(query, (AbstractRecord)row);
         }
         startOperationProfile(TIMER + query.getMonitorName());
@@ -150,7 +150,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public void startOperationProfile(String operationName, DatabaseQuery query, int weight) {
-        if (this.profileWeight < weight) {
+        if (getSessionProfiler() < weight) {
             return;
         }
         startOperationProfile(operationName);
@@ -164,7 +164,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public void occurred(String operationName, AbstractSession session) {
-        if (this.profileWeight < SessionProfiler.NORMAL) {
+        if (getSessionProfiler() < SessionProfiler.NORMAL) {
             return;
         }
         synchronized (this.operationTimings) {
@@ -178,7 +178,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public void occurred(String operationName, DatabaseQuery query, AbstractSession session) {
-        if (this.profileWeight < SessionProfiler.NORMAL) {
+        if (getSessionProfiler() < SessionProfiler.NORMAL) {
             return;
         }
         occurred(operationName, session);
@@ -208,5 +208,20 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
             }
         }
         return metricsRegistryBean;
+    }
+
+    public int getSessionProfiler() {
+        switch (getMetricsRegistryBean().getEclipseLinkProfileWeight()) {
+            case "ALL":
+                return SessionProfiler.ALL;
+            case "HEAVY":
+                return SessionProfiler.HEAVY;
+            case "NORMAL":
+                return SessionProfiler.NORMAL;
+            case "NONE":
+                return SessionProfiler.NONE;
+            default:
+                return SessionProfiler.ALL;
+        }
     }
 }
