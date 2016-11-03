@@ -18,6 +18,7 @@ import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import metrics_influxdb.HttpInfluxdbProtocol;
 import metrics_influxdb.InfluxdbReporter;
 import metrics_influxdb.api.measurements.CategoriesMetricMeasurementTransformer;
+import org.apache.deltaspike.core.api.config.ConfigProperty;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -32,7 +33,6 @@ import javax.inject.Named;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -46,32 +46,49 @@ public class MetricsRegistryBean {
     private Slf4jReporter slf4jReporter;
     private ScheduledReporter influxReporter;
     @Inject
+    @ConfigProperty(name="influxUrl", defaultValue = "influxUrl")
     private String influxUrl;
     @Inject
-    private Integer port;
+    @ConfigProperty(name="influxPort", defaultValue = "7000")
+    private Integer influxPort;
     @Inject
-    private String user;
+    @ConfigProperty(name="influxUsername", defaultValue = "username")
+    private String username;
     @Inject
+    @ConfigProperty(name="influxPassword", defaultValue = "password")
     private String password;
     @Inject
+    @ConfigProperty(name="influxDatabaseSchema", defaultValue = "database")
     private String database;
     @Inject
+    @ConfigProperty(name="influxProtocol", defaultValue = "protocol")
     private String protocol;
     @Inject
+    @ConfigProperty(name="slf4jReportFrequency", defaultValue = "30")
     private Integer slf4jReportFrequency;
     @Inject
+    @ConfigProperty(name="influxReportFrequency", defaultValue = "30")
     private Integer influxReportFrequency;
     @Inject
+    @ConfigProperty(name="enableSlf4jReporter", defaultValue = "true")
     private Boolean enableSlf4jReporter;
     @Inject
+    @ConfigProperty(name="enableInfluxReporter", defaultValue = "false")
     private Boolean enableInfluxReporter;
     @Inject
+    @ConfigProperty(name="enableJvmCapture", defaultValue = "true")
     private Boolean enableJvmCapture;
     @Inject
-    private List<String> healthCheckNamesToRegister;
+    @ConfigProperty(name="healthCheckNamesToRegister", defaultValue = "databaseHealthCheck|jmsHealthCheck")
+    private String healthCheckNamesToRegister;
     @Inject
+    @ConfigProperty(name="healthCheckNamesDelimiter", defaultValue = "|")
+    private String healthCheckNamesDelimiter;
+    @Inject
+    @ConfigProperty(name="applicationName", defaultValue = "appName")
     private String appName;
     @Inject
+    @ConfigProperty(name="clusterName", defaultValue = "clusterName")
     private String clusterName;
     private InetAddress address;
     @Inject
@@ -91,7 +108,7 @@ public class MetricsRegistryBean {
     private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
         log.debug("buildHealthChecksToRegisterMap() entered");
         Map<String, HealthCheck> healthCheckMap = new HashMap<>();
-        for (String healthCheckName : healthCheckNamesToRegister) {
+        for (String healthCheckName : healthCheckNamesToRegister.split(healthCheckNamesDelimiter)) {
             HealthCheck hc = getHealthCheckBeanByName(healthCheckName);
             if (null != hc) {
                 healthCheckMap.put(healthCheckName, hc);
@@ -147,7 +164,7 @@ public class MetricsRegistryBean {
     private void initializeMethodScheduledReporter() {
         if (enableInfluxReporter) {
             influxReporter = InfluxdbReporter.forRegistry(metricRegistry)
-                    .protocol(new HttpInfluxdbProtocol(protocol, influxUrl, port, user, password, database))
+                    .protocol(new HttpInfluxdbProtocol(protocol, influxUrl, influxPort, username, password, database))
                     .convertRatesTo(TimeUnit.SECONDS)
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
                     .filter(MetricFilter.ALL)

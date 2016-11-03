@@ -11,149 +11,113 @@ import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.queries.DatabaseQuery;
 import org.eclipse.persistence.sessions.Record;
 import org.eclipse.persistence.sessions.Session;
+import org.eclipse.persistence.sessions.SessionProfiler;
 import org.eclipse.persistence.sessions.SessionProfilerAdapter;
-import org.eclipse.persistence.tools.profiler.Profile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 public class EclipseLinkProfiler extends SessionProfilerAdapter implements Serializable, Cloneable {
-    protected List<Profile> profiles;
-    protected transient AbstractSession session;
-    protected boolean shouldLogProfile;
-    protected int nestLevel;
-    protected long nestTime;
-    protected long profileTime;
-    protected Map<Integer, Map<String, Long>> operationTimingsByThread;
-    protected Map<Integer, Map<String, Long>> operationStartTimesByThread;
+    protected static final String COUNTER = "Counter:";
+    protected static final String TIMER = "Timer:";
+    transient protected AbstractSession session;
+    protected Map<String, Object> operationTimings;
+    protected Map<Integer, Map<String, Long>> operationStartTimesByThread;//facilitates concurrency
+    protected int profileWeight;
     private MetricsRegistryBean metricsRegistryBean;
-    private Logger log = LoggerFactory.getLogger(EclipseLinkProfiler.class);
+    private static final Logger log = LoggerFactory.getLogger("EclipseLinkProfiler");
 
     public EclipseLinkProfiler() {
-        this(false);
+        this.operationTimings = new ConcurrentHashMap();
+        this.operationStartTimesByThread = new ConcurrentHashMap();
+        this.profileWeight = SessionProfiler.ALL;
+        this.metricsRegistryBean = this.getMetricsRegistryBean();
     }
 
-    /** @deprecated */
-    public EclipseLinkProfiler(Session session) {
-        this(session, false);
+    public long getDumpTime() {
+        //do nothing
+        return 60000;
     }
 
-    /** @deprecated */
-    public EclipseLinkProfiler(Session session, boolean shouldLogProfile) {
-        this.profiles = new Vector();
-        this.session = (AbstractSession)session;
-        this.shouldLogProfile = false;
-        this.nestLevel = 0;
-        this.operationTimingsByThread = new Hashtable();
-        this.operationStartTimesByThread = new Hashtable();
-        this.shouldLogProfile = false;
-    }
-
-    public EclipseLinkProfiler(boolean shouldLogProfile) {
-        this.profiles = new Vector();
-        this.shouldLogProfile = false;
-        this.nestLevel = 0;
-        this.profileTime = 0L;
-        this.nestTime = 0L;
-        this.operationTimingsByThread = new Hashtable();
-        this.operationStartTimesByThread = new Hashtable();
-        metricsRegistryBean = this.getMetricsRegistryBean();
-    }
-
-    protected void addProfile(Profile profile) {
-        this.getProfiles().add(profile);
+    public void setDumpTime(long dumpTime) {
+        //do nothing
     }
 
     public EclipseLinkProfiler clone() {
         try {
             return (EclipseLinkProfiler)super.clone();
-        } catch (CloneNotSupportedException var1) {
+        } catch (CloneNotSupportedException exception) {
             throw new InternalError();
         }
     }
 
+    public void checkDumpTime() {
+        //do nothing
+    }
+
+    public void dumpResults() {
+        //do nothing
+    }
+
     public void endOperationProfile(String operationName, DatabaseQuery databaseQuery) {
+        if (this.profileWeight < SessionProfiler.HEAVY) {
+            return;
+        }
         Long endTime = System.nanoTime();
         Long startTime = (Long)this.getOperationStartTimes().get(operationName);
         String query = databaseQuery.getSQLString();
         String logQuery;
         metricsRegistryBean = getMetricsRegistryBean();
         long time = endTime - startTime.longValue();
-        if(this.getNestLevel() == 0) {
-            if(time == 0L) {
-                return;
-            }
-            Profile totalTime = new Profile();
-            totalTime.setTotalTime(time);
-            totalTime.setLocalTime(time);
-            totalTime.addTiming(operationName, time);
-            this.addProfile(totalTime);
-            if (null != metricsRegistryBean && null != startTime && !query.contains("LAST_INSERT_ID")
-                    && !query.contains("SELECT 1")) {
-                if (query.contains("SELECT") && query.contains(" FROM ")) {
-                    logQuery = formatQuery(query);
-                } else {
-                    logQuery = query;
-                }
-                Timer queryTimer = metricsRegistryBean.getMetricRegistry().timer(operationName + ":" + logQuery);
-                queryTimer.update(endTime - startTime, TimeUnit.NANOSECONDS);
-            }
-            Long totalTime1 = (Long)this.getOperationTimings().get(operationName);
-            if(totalTime1 == null) {
-                this.getOperationTimings().put(operationName, Long.valueOf(time));
+        if (null != metricsRegistryBean && null != startTime && !query.contains("LAST_INSERT_ID")
+                && !query.contains("SELECT 1")) {
+            if (query.contains("SELECT") && query.contains(" FROM ")) {
+                logQuery = formatQuery(query);
             } else {
-                this.getOperationTimings().put(operationName, Long.valueOf(totalTime1.longValue() + time));
+                logQuery = query;
             }
+            Timer queryTimer = metricsRegistryBean.getMetricRegistry().timer(operationName + ":" + logQuery);
+            queryTimer.update(endTime - startTime, TimeUnit.NANOSECONDS);
+        }
+        Long totalTime1 = (Long)this.getOperationTimings().get(operationName);
+        if(totalTime1 == null) {
+            this.getOperationTimings().put(operationName, Long.valueOf(time));
+        } else {
+            this.getOperationTimings().put(operationName, Long.valueOf(totalTime1.longValue() + time));
         }
     }
 
     public void endOperationProfile(String operationName, DatabaseQuery query, int weight) {
+        if (this.profileWeight < weight) {
+            return;
+        }
         this.endOperationProfile(operationName, query);
-    }
-
-    protected int getNestLevel() {
-        return this.nestLevel;
-    }
-
-    protected long getNestTime() {
-        return this.nestTime;
     }
 
     protected Map<String, Long> getOperationStartTimes() {
         Integer threadId = Integer.valueOf(Thread.currentThread().hashCode());
-        if(this.getOperationStartTimesByThread().get(threadId) == null) {
-            this.getOperationStartTimesByThread().put(threadId, new Hashtable(10));
+        Map<String, Long> times = this.operationStartTimesByThread.get(threadId);
+        if (times == null) {
+            times = new Hashtable<String, Long>();
+            this.operationStartTimesByThread.put(threadId, times);
         }
-
-        return (Map)this.getOperationStartTimesByThread().get(threadId);
+        return times;
     }
 
     protected Map<Integer, Map<String, Long>> getOperationStartTimesByThread() {
-        return this.operationStartTimesByThread;
+        return operationStartTimesByThread;
     }
 
-    protected Map<String, Long> getOperationTimings() {
-        Integer threadId = Integer.valueOf(Thread.currentThread().hashCode());
-        if(this.getOperationTimingsByThread().get(threadId) == null) {
-            this.getOperationTimingsByThread().put(threadId, new Hashtable(10));
-        }
-
-        return (Map)this.getOperationTimingsByThread().get(threadId);
+    public Object getOperationTime(String operation) {
+        return this.operationTimings.get(operation);
     }
 
-    protected Map<Integer, Map<String, Long>> getOperationTimingsByThread() {
-        return this.operationTimingsByThread;
-    }
-
-    public List<Profile> getProfiles() {
-        return this.profiles;
-    }
-
-    protected long getProfileTime() {
-        return this.profileTime;
+    public Map<String, Object> getOperationTimings() {
+        return operationTimings;
     }
 
     public AbstractSession getSession() {
@@ -161,102 +125,20 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public Object profileExecutionOfQuery(DatabaseQuery query, Record row, AbstractSession session) {
-        long profileStartTime = System.nanoTime();
-        long nestedProfileStartTime = this.getProfileTime();
-        Profile profile = new Profile();
-        profile.setQueryClass(query.getClass());
-        profile.setDomainClass(query.getReferenceClass());
-        Object result = null;
-        try {
-            this.setNestLevel(this.getNestLevel() + 1);
-            long startNestTime = this.getNestTime();
-            Map timingsBeforeExecution = (Map) ((Hashtable) this.getOperationTimings()).clone();
-            Map startTimingsBeforeExecution = (Map) ((Hashtable) this.getOperationStartTimes()).clone();
-            long startTime = System.nanoTime();
-
-            Object var18;
-            try {
-                result = session.internalExecuteQuery(query, (AbstractRecord) row);
-                var18 = result;
-            } finally {
-                long endTime = System.nanoTime();
-                this.setNestLevel(this.getNestLevel() - 1);
-
-                String profileEndTime;
-                long operationTime;
-                for (Iterator var22 = this.getOperationTimings().keySet().iterator(); var22.hasNext(); profile.addTiming(profileEndTime, operationTime)) {
-                    profileEndTime = (String) var22.next();
-                    Long totalTimeIncludingProfiling = (Long) timingsBeforeExecution.get(profileEndTime);
-                    long operationEndTime = ((Long) this.getOperationTimings().get(profileEndTime)).longValue();
-                    if (totalTimeIncludingProfiling != null) {
-                        operationTime = operationEndTime - totalTimeIncludingProfiling.longValue();
-                    } else {
-                        operationTime = operationEndTime;
-                    }
-                }
-
-                profile.setTotalTime(endTime - startTime - (this.getProfileTime() - nestedProfileStartTime));
-                profile.setLocalTime(profile.getTotalTime() - (this.getNestTime() - startNestTime));
-                if (result instanceof Collection) {
-                    profile.setNumberOfInstancesEffected((long) ((Collection) result).size());
-                } else {
-                    profile.setNumberOfInstancesEffected(1L);
-                }
-
-                this.addProfile(profile);
-                long profileEndTime1;
-                long totalTimeIncludingProfiling1;
-
-                if (this.getNestLevel() == 0) {
-                    this.setNestTime(0L);
-                    this.setProfileTime(0L);
-                    this.setOperationTimings(new Hashtable());
-                    this.setOperationStartTimes(new Hashtable());
-                    profileEndTime1 = System.nanoTime();
-                    totalTimeIncludingProfiling1 = profileEndTime1 - profileStartTime;
-                    profile.setProfileTime(totalTimeIncludingProfiling1 - profile.getTotalTime());
-                } else {
-                    this.setNestTime(startNestTime + profile.getTotalTime());
-                    this.setOperationTimings(timingsBeforeExecution);
-                    this.setOperationStartTimes(startTimingsBeforeExecution);
-                    profileEndTime1 = System.nanoTime();
-                    totalTimeIncludingProfiling1 = profileEndTime1 - profileStartTime;
-                    this.setProfileTime(this.getProfileTime() + (totalTimeIncludingProfiling1 - (endTime - startTime)));
-                    profile.setProfileTime(totalTimeIncludingProfiling1 - profile.getTotalTime());
-                    Iterator operationTime1 = ((Map) ((Hashtable) startTimingsBeforeExecution).clone()).keySet().iterator();
-
-                    while (operationTime1.hasNext()) {
-                        String timingName = (String) operationTime1.next();
-                        startTimingsBeforeExecution.put(timingName, Long.valueOf(((Number) startTimingsBeforeExecution.get(timingName)).longValue() + totalTimeIncludingProfiling1));
-                    }
-                }
-            }
-            return var18;
-        } catch (Exception ex) {
-            return result;
+        if (this.profileWeight < SessionProfiler.HEAVY) {
+            return session.internalExecuteQuery(query, (AbstractRecord)row);
         }
-    }
-
-    protected void setNestLevel(int nestLevel) {
-        this.nestLevel = nestLevel;
-    }
-
-    protected void setNestTime(long nestTime) {
-        this.nestTime = nestTime;
-    }
-
-    protected void setOperationStartTimes(Map<String, Long> operationStartTimes) {
-        Integer threadId = Integer.valueOf(Thread.currentThread().hashCode());
-        this.getOperationStartTimesByThread().put(threadId, operationStartTimes);
-    }
-
-    protected void setOperationTimings(Map<String, Long> operationTimings) {
-        Integer threadId = Integer.valueOf(Thread.currentThread().hashCode());
-        this.getOperationTimingsByThread().put(threadId, operationTimings);
-    }
-
-    protected void setProfileTime(long profileTime) {
-        this.profileTime = profileTime;
+        startOperationProfile(TIMER + query.getMonitorName());
+        startOperationProfile(TIMER + query.getClass().getSimpleName());
+        occurred(COUNTER + query.getClass().getSimpleName(), session);
+        occurred(COUNTER + query.getMonitorName(), session);
+        try {
+            return session.internalExecuteQuery(query, (AbstractRecord)row);
+        } finally {
+            endOperationProfile(TIMER + query.getMonitorName());
+            endOperationProfile(TIMER + query.getClass().getSimpleName());
+            checkDumpTime();
+        }
     }
 
     public void setSession(Session session) {
@@ -264,11 +146,43 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public void startOperationProfile(String operationName) {
-        this.getOperationStartTimes().put(operationName, Long.valueOf(System.nanoTime()));
+        getOperationStartTimes().put(operationName, Long.valueOf(System.nanoTime()));
     }
 
     public void startOperationProfile(String operationName, DatabaseQuery query, int weight) {
-        this.startOperationProfile(operationName);
+        if (this.profileWeight < weight) {
+            return;
+        }
+        startOperationProfile(operationName);
+        if (query != null) {
+            startOperationProfile(TIMER + query.getMonitorName() + ":" + operationName.substring(TIMER.length(), operationName.length()));
+        }
+    }
+
+    public void update(String operationName, Object value) {
+        this.operationTimings.put(operationName, value);
+    }
+
+    public void occurred(String operationName, AbstractSession session) {
+        if (this.profileWeight < SessionProfiler.NORMAL) {
+            return;
+        }
+        synchronized (this.operationTimings) {
+            Long occurred = (Long)this.operationTimings.get(operationName);
+            if (occurred == null) {
+                this.operationTimings.put(operationName, Long.valueOf(1));
+            } else {
+                this.operationTimings.put(operationName, Long.valueOf(occurred.longValue() + 1));
+            }
+        }
+    }
+
+    public void occurred(String operationName, DatabaseQuery query, AbstractSession session) {
+        if (this.profileWeight < SessionProfiler.NORMAL) {
+            return;
+        }
+        occurred(operationName, session);
+        occurred(COUNTER + query.getMonitorName() + ":" + operationName.substring(COUNTER.length(), operationName.length()), session);
     }
 
     public int getProfileWeight() {
