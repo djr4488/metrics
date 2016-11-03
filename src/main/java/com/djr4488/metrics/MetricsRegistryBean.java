@@ -10,16 +10,15 @@ import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.health.jvm.ThreadDeadlockHealthCheck;
-import com.codahale.metrics.jvm.CachedThreadStatesGaugeSet;
 import com.codahale.metrics.jvm.ClassLoadingGaugeSet;
 import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
-import com.codahale.metrics.jvm.ThreadDeadlockDetector;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import metrics_influxdb.HttpInfluxdbProtocol;
 import metrics_influxdb.InfluxdbReporter;
 import metrics_influxdb.api.measurements.CategoriesMetricMeasurementTransformer;
+import org.apache.deltaspike.core.api.config.ConfigProperty;
 import org.slf4j.Logger;
 
 import javax.annotation.PostConstruct;
@@ -31,11 +30,9 @@ import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 import javax.inject.Named;
-import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -49,33 +46,54 @@ public class MetricsRegistryBean {
     private Slf4jReporter slf4jReporter;
     private ScheduledReporter influxReporter;
     @Inject
+    @ConfigProperty(name="influxUrl", defaultValue = "influxUrl")
     private String influxUrl;
     @Inject
-    private Integer port;
+    @ConfigProperty(name="influxPort", defaultValue = "7000")
+    private Integer influxPort;
     @Inject
-    private String user;
+    @ConfigProperty(name="influxUsername", defaultValue = "username")
+    private String username;
     @Inject
+    @ConfigProperty(name="influxPassword", defaultValue = "password")
     private String password;
     @Inject
+    @ConfigProperty(name="influxDatabaseSchema", defaultValue = "database")
     private String database;
     @Inject
+    @ConfigProperty(name="influxProtocol", defaultValue = "protocol")
     private String protocol;
     @Inject
+    @ConfigProperty(name="slf4jReportFrequency", defaultValue = "30")
     private Integer slf4jReportFrequency;
     @Inject
+    @ConfigProperty(name="influxReportFrequency", defaultValue = "30")
     private Integer influxReportFrequency;
     @Inject
+    @ConfigProperty(name="enableSlf4jReporter", defaultValue = "true")
     private Boolean enableSlf4jReporter;
     @Inject
+    @ConfigProperty(name="enableInfluxReporter", defaultValue = "false")
     private Boolean enableInfluxReporter;
     @Inject
+    @ConfigProperty(name="enableJvmCapture", defaultValue = "true")
     private Boolean enableJvmCapture;
     @Inject
-    private List<String> healthCheckNamesToRegister;
+    @ConfigProperty(name="healthCheckNamesToRegister", defaultValue = "databaseHealthCheck|jmsHealthCheck")
+    private String healthCheckNamesToRegister;
     @Inject
+    @ConfigProperty(name="healthCheckNamesDelimiter", defaultValue = "|")
+    private String healthCheckNamesDelimiter;
+    @Inject
+    @ConfigProperty(name="applicationName", defaultValue = "appName")
+    private String appName;
+    @Inject
+    @ConfigProperty(name="clusterName", defaultValue = "clusterName")
+    private String clusterName;
+    @Inject
+    @ConfigProperty(name="eclipseLinkProfileWeight", defaultValue="ALL")
     private String eclipseLinkProfileWeight;
     private InetAddress address;
-
     @Inject
     private Logger log;
 
@@ -90,6 +108,33 @@ public class MetricsRegistryBean {
         initializeMethodScheduledReporter();
     }
 
+    private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
+        log.debug("buildHealthChecksToRegisterMap() entered");
+        Map<String, HealthCheck> healthCheckMap = new HashMap<>();
+        for (String healthCheckName : healthCheckNamesToRegister.split(healthCheckNamesDelimiter)) {
+            HealthCheck hc = getHealthCheckBeanByName(healthCheckName);
+            if (null != hc) {
+                healthCheckMap.put(healthCheckName, hc);
+            }
+        }
+        return healthCheckMap;
+    }
+
+    /**
+     * This method can return null but is used to find health checks by name
+     * @param healthCheckBeanName String
+     * @return HealthCheck
+     */
+    @SuppressWarnings("unchecked")
+    private HealthCheck getHealthCheckBeanByName(String healthCheckBeanName) {
+        try {
+            return MetricsRegistryBean.getBeanByNameOfClass(healthCheckBeanName, HealthCheck.class);
+        } catch (Exception ex) {
+            log.error("getHealthCheckBeanByName()", ex);
+        }
+        return null;
+    }
+
     private void initializeJvmMetrics() {
         if (enableJvmCapture) {
             metricRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
@@ -97,26 +142,6 @@ public class MetricsRegistryBean {
             metricRegistry.register("jvm.thread-states", new ThreadStatesGaugeSet());
             metricRegistry.register("jvm.class-loading", new ClassLoadingGaugeSet());
             metricRegistry.register("jvm.fd.usage", new FileDescriptorRatioGauge());
-            metricRegistry.register("jvm.cached-thread-states",
-                    new CachedThreadStatesGaugeSet(ManagementFactory.getThreadMXBean(), new ThreadDeadlockDetector(), 30, TimeUnit.SECONDS));
-        }
-    }
-
-    private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
-        Map<String, HealthCheck> healthCheckMap = new HashMap<>();
-        for (String healthCheckName : healthCheckNamesToRegister) {
-            healthCheckMap.put(healthCheckName, getHealthCheckBeanByName(healthCheckName));
-        }
-        return healthCheckMap;
-    }
-
-    @SuppressWarnings("unchecked")
-    public HealthCheck getHealthCheckBeanByName(String healthCheckBeanName) {
-        try {
-            return MetricsRegistryBean.getBeanByNameOfClass(healthCheckBeanName, HealthCheck.class);
-        } catch(Exception ex) {
-            log.error("getHealthCheckBeanByName() for {} with ex:{}", healthCheckBeanName, ex);
-            return null;
         }
     }
 
@@ -133,6 +158,7 @@ public class MetricsRegistryBean {
                     .outputTo(log)
                     .convertRatesTo(TimeUnit.SECONDS)
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
+                    .withLoggingLevel(Slf4jReporter.LoggingLevel.TRACE)
                     .build();
             slf4jReporter.start(slf4jReportFrequency, TimeUnit.SECONDS);
         }
@@ -141,15 +167,14 @@ public class MetricsRegistryBean {
     private void initializeMethodScheduledReporter() {
         if (enableInfluxReporter) {
             influxReporter = InfluxdbReporter.forRegistry(metricRegistry)
-                    .protocol(new HttpInfluxdbProtocol(protocol, influxUrl, port, user, password, database))
+                    .protocol(new HttpInfluxdbProtocol(protocol, influxUrl, influxPort, username, password, database))
                     .convertRatesTo(TimeUnit.SECONDS)
                     .convertDurationsTo(TimeUnit.MILLISECONDS)
                     .filter(MetricFilter.ALL)
                     .skipIdleMetrics(false)
-                    .tag("appName", System.getenv("VIRTUAL_HOST"))
-                    .tag("registryType", "method")
+                    .tag("appName", appName)
                     .tag("server", getLocalHostName())
-                    .tag("cluster", System.getenv("AWS_CLUSTER"))
+                    .tag("cluster", clusterName)
                     .transformer(new CategoriesMetricMeasurementTransformer("module", "artifact"))
                     .build();
             influxReporter.start(influxReportFrequency, TimeUnit.SECONDS);
@@ -169,19 +194,19 @@ public class MetricsRegistryBean {
             address = InetAddress.getLocalHost();
             return address.getHostName();
         } catch (UnknownHostException uhEx) {
-            return System.getenv("VIRTUAL_HOST");
+            return appName;
         }
     }
 
     public static <T> T getBeanByNameOfClass(String name, Class<T> clazz)
     throws Exception {
-        T cdiBean;
         BeanManager bm = CDI.current().getBeanManager();
         Bean<T> bean = (Bean<T>) bm.getBeans(name).iterator().next();
         CreationalContext<T> ctx = bm.createCreationalContext(bean);
-        return (T) bm.getReference(bean, clazz, ctx);
+        cdiBean = (T) bm.getReference(bean, clazz, ctx);
+        return cdiBean;
     }
-
+    
     public String getEclipseLinkProfileWeight() {
         return eclipseLinkProfileWeight;
     }
