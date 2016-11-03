@@ -39,4 +39,5 @@ healthCheckNamesToRegister=<list of healthchecks you want to register, delimited
 healthCheckNamesDelimiter=<delimiter to use for separating out the health check names>
 applicationName=<name of your application>
 clusterName=<name of your cluster>
+eclipseLinkProfileWeight=<one of ALL, HEAVY, NORMAL, or NONE>
 ```
