@@ -29,6 +29,7 @@ import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 @ApplicationScoped
 @Named("metricsRegistryBean")
@@ -42,7 +43,7 @@ public class MetricsRegistryBean {
     private Boolean enableSlf4jReporter;
     @Inject
     @ConfigProperty(name="slf4jReporterNames", defaultValue = "slf4jReporterBean")
-    private List<String> slf4jReporterNames;
+    private String slf4jReporterNames;
     @Inject
     @ConfigProperty(name="slf4jReporterNamesDelimiter", defaultValue = "|")
     private String slf4jReporterNamesDelimiter;
@@ -50,8 +51,8 @@ public class MetricsRegistryBean {
     @ConfigProperty(name="enableScheduledReporters", defaultValue = "false")
     private Boolean enableScheduledReporters;
     @Inject
-    @ConfigProperty(name="scheduledReporterNames", defaultValue = "slf4jReporterBean")
-    private List<String> scheduledReporterNames;
+    @ConfigProperty(name="scheduledReporterNames", defaultValue = "influxReporterBean")
+    private String scheduledReporterNames;
     @Inject
     @ConfigProperty(name="scheduledReporterNamesDelimiter", defaultValue = "|")
     private String scheduledReporterNamesDelimiter;
@@ -84,7 +85,7 @@ public class MetricsRegistryBean {
     private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
         log.debug("buildHealthChecksToRegisterMap() entered");
         Map<String, HealthCheck> healthCheckMap = new HashMap<>();
-        for (String healthCheckName : healthCheckNamesToRegister.split(healthCheckNamesDelimiter)) {
+        for (String healthCheckName : healthCheckNamesToRegister.split(Pattern.quote(healthCheckNamesDelimiter))) {
             HealthCheck hc = getHealthCheckBeanByName(healthCheckName);
             if (null != hc) {
                 healthCheckMap.put(healthCheckName, hc);
@@ -127,19 +128,39 @@ public class MetricsRegistryBean {
 
     private void initializeReporters() {
         if (enableSlf4jReporter) {
-            try {
-                getBeanByNameOfClass("slf4jReporter", ReporterBean.class).initialize(metricRegistry);
-            } catch (Exception ex) {
-                log.debug("initializeReporters() unable to initialize slf4jReporter");
-            }
+            initializeSlf4jReporters();
         }
         if (enableScheduledReporters) {
-            try {
+            initializeScheduledReporters();
+        }
+    }
 
-            } catch (Exception ex) {
-                log.debug("initializeReporters() unable to initialize scheduled reporters");
+    private void initializeSlf4jReporters() {
+        for (String slf4jReporterName : slf4jReporterNames.split(Pattern.quote(slf4jReporterNamesDelimiter))) {
+            ReporterBean reporterBean = getReporterBeanByName(slf4jReporterName);
+            if (reporterBean != null) {
+                reporterBean.initialize(metricRegistry);
             }
         }
+    }
+
+    private void initializeScheduledReporters() {
+        for (String scheduledReporterName : scheduledReporterNames.split(Pattern.quote(scheduledReporterNamesDelimiter))) {
+            ReporterBean reporterBean = getReporterBeanByName(scheduledReporterName);
+            if (reporterBean != null) {
+                reporterBean.initialize(metricRegistry);
+            }
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private ReporterBean getReporterBeanByName(String reporterBeanName) {
+        try {
+            return MetricsRegistryBean.getBeanByNameOfClass(reporterBeanName, ReporterBean.class);
+        } catch (Exception ex) {
+            log.error("getReporterBeanByName()", ex);
+        }
+        return null;
     }
 
     public MetricRegistry getMetricRegistry() {

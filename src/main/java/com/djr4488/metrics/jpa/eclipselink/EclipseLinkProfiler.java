@@ -5,7 +5,7 @@ package com.djr4488.metrics.jpa.eclipselink;
  * Credit is provided to EclispeLink PerformanceProfiler author(James Sutherland?), which is where most of this code came from.
  */
 import com.codahale.metrics.Timer;
-import com.springventuregroup.dupestomper.metrics.MetricsRegistryBean;
+import com.djr4488.metrics.MetricsRegistryBean;
 import org.eclipse.persistence.internal.sessions.AbstractRecord;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.queries.DatabaseQuery;
