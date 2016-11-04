@@ -3,10 +3,7 @@ package com.djr4488.metrics;
 /**
  * Created by djr4488 on 9/30/16.
  */
-import com.codahale.metrics.MetricFilter;
 import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.ScheduledReporter;
-import com.codahale.metrics.Slf4jReporter;
 import com.codahale.metrics.health.HealthCheck;
 import com.codahale.metrics.health.HealthCheckRegistry;
 import com.codahale.metrics.health.jvm.ThreadDeadlockHealthCheck;
@@ -15,9 +12,7 @@ import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
-import metrics_influxdb.HttpInfluxdbProtocol;
-import metrics_influxdb.InfluxdbReporter;
-import metrics_influxdb.api.measurements.CategoriesMetricMeasurementTransformer;
+import com.djr4488.metrics.reporters.ReporterBean;
 import org.apache.deltaspike.core.api.config.ConfigProperty;
 import org.slf4j.Logger;
 
@@ -31,10 +26,9 @@ import javax.enterprise.inject.spi.CDI;
 import javax.inject.Inject;
 import javax.inject.Named;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 
 @ApplicationScoped
 @Named("metricsRegistryBean")
@@ -43,38 +37,24 @@ public class MetricsRegistryBean {
     @ApplicationScoped
     private MetricRegistry metricRegistry = new MetricRegistry();
     private HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
-    private Slf4jReporter slf4jReporter;
-    private ScheduledReporter influxReporter;
     @Inject
-    @ConfigProperty(name="influxUrl", defaultValue = "influxUrl")
-    private String influxUrl;
-    @Inject
-    @ConfigProperty(name="influxPort", defaultValue = "7000")
-    private Integer influxPort;
-    @Inject
-    @ConfigProperty(name="influxUsername", defaultValue = "username")
-    private String username;
-    @Inject
-    @ConfigProperty(name="influxPassword", defaultValue = "password")
-    private String password;
-    @Inject
-    @ConfigProperty(name="influxDatabaseSchema", defaultValue = "database")
-    private String database;
-    @Inject
-    @ConfigProperty(name="influxProtocol", defaultValue = "protocol")
-    private String protocol;
-    @Inject
-    @ConfigProperty(name="slf4jReportFrequency", defaultValue = "30")
-    private Integer slf4jReportFrequency;
-    @Inject
-    @ConfigProperty(name="influxReportFrequency", defaultValue = "30")
-    private Integer influxReportFrequency;
-    @Inject
-    @ConfigProperty(name="enableSlf4jReporter", defaultValue = "true")
+    @ConfigProperty(name="enableSlf4jReporter", defaultValue="true")
     private Boolean enableSlf4jReporter;
     @Inject
-    @ConfigProperty(name="enableInfluxReporter", defaultValue = "false")
-    private Boolean enableInfluxReporter;
+    @ConfigProperty(name="slf4jReporterNames", defaultValue = "slf4jReporterBean")
+    private List<String> slf4jReporterNames;
+    @Inject
+    @ConfigProperty(name="slf4jReporterNamesDelimiter", defaultValue = "|")
+    private String slf4jReporterNamesDelimiter;
+    @Inject
+    @ConfigProperty(name="enableScheduledReporters", defaultValue = "false")
+    private Boolean enableScheduledReporters;
+    @Inject
+    @ConfigProperty(name="scheduledReporterNames", defaultValue = "slf4jReporterBean")
+    private List<String> scheduledReporterNames;
+    @Inject
+    @ConfigProperty(name="scheduledReporterNamesDelimiter", defaultValue = "|")
+    private String scheduledReporterNamesDelimiter;
     @Inject
     @ConfigProperty(name="enableJvmCapture", defaultValue = "true")
     private Boolean enableJvmCapture;
@@ -84,12 +64,6 @@ public class MetricsRegistryBean {
     @Inject
     @ConfigProperty(name="healthCheckNamesDelimiter", defaultValue = "|")
     private String healthCheckNamesDelimiter;
-    @Inject
-    @ConfigProperty(name="applicationName", defaultValue = "appName")
-    private String appName;
-    @Inject
-    @ConfigProperty(name="clusterName", defaultValue = "clusterName")
-    private String clusterName;
     @Inject
     @ConfigProperty(name="eclipseLinkProfileWeight", defaultValue="ALL")
     private String eclipseLinkProfileWeight;
@@ -104,8 +78,7 @@ public class MetricsRegistryBean {
     public void postContruct() {
         initializeJvmMetrics();
         initializeHealthChecks(buildHealthChecksToRegisterMap());
-        initializeSlf4jReporter();
-        initializeMethodScheduledReporter();
+        initializeReporters();
     }
 
     private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
@@ -152,32 +125,20 @@ public class MetricsRegistryBean {
         healthCheckRegistry.register("thread-deadlock", new ThreadDeadlockHealthCheck());
     }
 
-    private void initializeSlf4jReporter() {
+    private void initializeReporters() {
         if (enableSlf4jReporter) {
-            slf4jReporter = Slf4jReporter.forRegistry(metricRegistry)
-                    .outputTo(log)
-                    .convertRatesTo(TimeUnit.SECONDS)
-                    .convertDurationsTo(TimeUnit.MILLISECONDS)
-                    .withLoggingLevel(Slf4jReporter.LoggingLevel.TRACE)
-                    .build();
-            slf4jReporter.start(slf4jReportFrequency, TimeUnit.SECONDS);
+            try {
+                getBeanByNameOfClass("slf4jReporter", ReporterBean.class).initialize(metricRegistry);
+            } catch (Exception ex) {
+                log.debug("initializeReporters() unable to initialize slf4jReporter");
+            }
         }
-    }
+        if (enableScheduledReporters) {
+            try {
 
-    private void initializeMethodScheduledReporter() {
-        if (enableInfluxReporter) {
-            influxReporter = InfluxdbReporter.forRegistry(metricRegistry)
-                    .protocol(new HttpInfluxdbProtocol(protocol, influxUrl, influxPort, username, password, database))
-                    .convertRatesTo(TimeUnit.SECONDS)
-                    .convertDurationsTo(TimeUnit.MILLISECONDS)
-                    .filter(MetricFilter.ALL)
-                    .skipIdleMetrics(false)
-                    .tag("appName", appName)
-                    .tag("server", getLocalHostName())
-                    .tag("cluster", clusterName)
-                    .transformer(new CategoriesMetricMeasurementTransformer("module", "artifact"))
-                    .build();
-            influxReporter.start(influxReportFrequency, TimeUnit.SECONDS);
+            } catch (Exception ex) {
+                log.debug("initializeReporters() unable to initialize scheduled reporters");
+            }
         }
     }
 
@@ -189,14 +150,7 @@ public class MetricsRegistryBean {
         return healthCheckRegistry;
     }
 
-    private String getLocalHostName() {
-        try {
-            address = InetAddress.getLocalHost();
-            return address.getHostName();
-        } catch (UnknownHostException uhEx) {
-            return appName;
-        }
-    }
+
 
     public static <T> T getBeanByNameOfClass(String name, Class<T> clazz)
     throws Exception {
