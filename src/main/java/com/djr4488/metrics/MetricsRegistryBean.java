@@ -203,8 +203,7 @@ public class MetricsRegistryBean {
         BeanManager bm = CDI.current().getBeanManager();
         Bean<T> bean = (Bean<T>) bm.getBeans(name).iterator().next();
         CreationalContext<T> ctx = bm.createCreationalContext(bean);
-        cdiBean = (T) bm.getReference(bean, clazz, ctx);
-        return cdiBean;
+        return (T) bm.getReference(bean, clazz, ctx);
     }
     
     public String getEclipseLinkProfileWeight() {
