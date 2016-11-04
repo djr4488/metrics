@@ -1,4 +1,4 @@
-# metrics-cdi-extentions
+# metrics-cdi-extensions
 
 ## Purpose
 
