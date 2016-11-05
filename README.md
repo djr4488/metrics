@@ -18,6 +18,7 @@ To provide a simplified mechanism for managing dropwizard metrics in a Java EE e
 * dropwizard-metrics; [https://github.com/dropwizard/metrics]
 * metrics-influxdb; [https://github.com/davidB/metrics-influxdb]
 * slf4j; [https://github.com/qos-ch/slf4j]
+* owner; [https://github.com/lviggiano/owner]
 * javaee-api version 7.0
 
 ## Usage
