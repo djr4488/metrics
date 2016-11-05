@@ -153,4 +153,16 @@
             <scope>compile</scope>
         </dependency>
     </dependencies>
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.eluder.coveralls</groupId>
+                <artifactId>coveralls-maven-plugin</artifactId>
+                <version>3.0.1</version>
+                <configuration>
+                    <repoToken>qQ9SKGbXrn3MLzMVhzBr35OYQfeBw26A8</repoToken>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>
