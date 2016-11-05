@@ -4,11 +4,13 @@
 
 To provide a simplified mechanism for managing dropwizard metrics in a Java EE environment.  
 
+## Status
+* Build: [![Build Status](https://travis-ci.org/djr4488/metrics.svg?branch=master)](https://travis-ci.org/djr4488/metrics)
+
 ## TODOs
 
 * add test cases
-* other dropwizard-metrics
-* rename some configuration parameters
+* other dropwizard-metrics reporters
 
 ## Dependencies
 
