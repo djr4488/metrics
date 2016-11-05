@@ -12,9 +12,11 @@ import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
+import com.djr4488.metrics.config.MetricsRegistryBeanConfig;
 import com.djr4488.metrics.reporters.ReporterBean;
-import org.apache.deltaspike.core.api.config.ConfigProperty;
+import org.aeonbits.owner.ConfigFactory;
 import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
@@ -23,13 +25,10 @@ import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.CDI;
-import javax.inject.Inject;
 import javax.inject.Named;
-import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 @ApplicationScoped
 @Named("metricsRegistryBean")
@@ -38,38 +37,13 @@ public class MetricsRegistryBean {
     @ApplicationScoped
     private MetricRegistry metricRegistry = new MetricRegistry();
     private HealthCheckRegistry healthCheckRegistry = new HealthCheckRegistry();
-    @Inject
-    @ConfigProperty(name="enableSlf4jReporter", defaultValue="true")
     private Boolean enableSlf4jReporter;
-    @Inject
-    @ConfigProperty(name="slf4jReporterNames", defaultValue = "slf4jReporterBean")
-    private String slf4jReporterNames;
-    @Inject
-    @ConfigProperty(name="slf4jReporterNamesDelimiter", defaultValue = "|")
-    private String slf4jReporterNamesDelimiter;
-    @Inject
-    @ConfigProperty(name="enableScheduledReporters", defaultValue = "false")
+    private List<String> slf4jReporterNames;
     private Boolean enableScheduledReporters;
-    @Inject
-    @ConfigProperty(name="scheduledReporterNames", defaultValue = "influxReporterBean")
-    private String scheduledReporterNames;
-    @Inject
-    @ConfigProperty(name="scheduledReporterNamesDelimiter", defaultValue = "|")
-    private String scheduledReporterNamesDelimiter;
-    @Inject
-    @ConfigProperty(name="enableJvmCapture", defaultValue = "true")
+    private List<String> scheduledReporterNames;
     private Boolean enableJvmCapture;
-    @Inject
-    @ConfigProperty(name="healthCheckNamesToRegister", defaultValue = "databaseHealthCheck|jmsHealthCheck")
-    private String healthCheckNamesToRegister;
-    @Inject
-    @ConfigProperty(name="healthCheckNamesDelimiter", defaultValue = "|")
-    private String healthCheckNamesDelimiter;
-    @Inject
-    @ConfigProperty(name="eclipseLinkProfileWeight", defaultValue="ALL")
+    private List<String> healthCheckNamesToRegister;
     private String eclipseLinkProfileWeight;
-    private InetAddress address;
-    @Inject
     private Logger log;
 
     public MetricsRegistryBean() {
@@ -77,15 +51,29 @@ public class MetricsRegistryBean {
 
     @PostConstruct
     public void postContruct() {
+        this.log = LoggerFactory.getLogger(this.getClass());
+        initializeConfiguration();
         initializeJvmMetrics();
         initializeHealthChecks(buildHealthChecksToRegisterMap());
         initializeReporters();
     }
 
+    private void initializeConfiguration() {
+        log.debug("initializeConfiguration() initializing configuration");
+        MetricsRegistryBeanConfig cfg = ConfigFactory.create(MetricsRegistryBeanConfig.class);
+        this.enableSlf4jReporter = cfg.enableSlf4jReporter();
+        this.slf4jReporterNames = cfg.slf4jReporterNames();
+        this.enableScheduledReporters = cfg.enableScheduledReporters();
+        this.scheduledReporterNames = cfg.scheduledReporterNames();
+        this.enableJvmCapture = cfg.enableJvmCapture();
+        this.healthCheckNamesToRegister = cfg.healthCheckNamesToRegister();
+        this.eclipseLinkProfileWeight = cfg.eclipseLinkProfileWeight();
+    }
+
     private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
         log.debug("buildHealthChecksToRegisterMap() entered");
         Map<String, HealthCheck> healthCheckMap = new HashMap<>();
-        for (String healthCheckName : healthCheckNamesToRegister.split(Pattern.quote(healthCheckNamesDelimiter))) {
+        for (String healthCheckName : healthCheckNamesToRegister) {
             HealthCheck hc = getHealthCheckBeanByName(healthCheckName);
             if (null != hc) {
                 healthCheckMap.put(healthCheckName, hc);
@@ -101,6 +89,7 @@ public class MetricsRegistryBean {
      */
     @SuppressWarnings("unchecked")
     private HealthCheck getHealthCheckBeanByName(String healthCheckBeanName) {
+        log.debug("getHealthCheckBeanByName() healthCheckBeanName:{}", healthCheckBeanName);
         try {
             return MetricsRegistryBean.getBeanByNameOfClass(healthCheckBeanName, HealthCheck.class);
         } catch (Exception ex) {
@@ -111,6 +100,7 @@ public class MetricsRegistryBean {
 
     private void initializeJvmMetrics() {
         if (enableJvmCapture) {
+            log.debug("initializeJvmMetrics() entered");
             metricRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
             metricRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
             metricRegistry.register("jvm.thread-states", new ThreadStatesGaugeSet());
@@ -136,7 +126,7 @@ public class MetricsRegistryBean {
     }
 
     private void initializeSlf4jReporters() {
-        for (String slf4jReporterName : slf4jReporterNames.split(Pattern.quote(slf4jReporterNamesDelimiter))) {
+        for (String slf4jReporterName : slf4jReporterNames) {
             ReporterBean reporterBean = getReporterBeanByName(slf4jReporterName);
             if (reporterBean != null) {
                 reporterBean.initialize(metricRegistry);
@@ -145,7 +135,7 @@ public class MetricsRegistryBean {
     }
 
     private void initializeScheduledReporters() {
-        for (String scheduledReporterName : scheduledReporterNames.split(Pattern.quote(scheduledReporterNamesDelimiter))) {
+        for (String scheduledReporterName : scheduledReporterNames) {
             ReporterBean reporterBean = getReporterBeanByName(scheduledReporterName);
             if (reporterBean != null) {
                 reporterBean.initialize(metricRegistry);
@@ -155,6 +145,7 @@ public class MetricsRegistryBean {
 
     @SuppressWarnings("unchecked")
     private ReporterBean getReporterBeanByName(String reporterBeanName) {
+        log.debug("getReporterBeanByName() entered reporterBeanName:{}", reporterBeanName);
         try {
             return MetricsRegistryBean.getBeanByNameOfClass(reporterBeanName, ReporterBean.class);
         } catch (Exception ex) {

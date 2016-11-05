@@ -20,24 +20,52 @@ To provide a simplified mechanism for managing dropwizard metrics in a Java EE e
 
 ## Usage
 
-Configuration is done by having a metrics-config.properties file that can be picked up by Apache DeltaSpike configuration
-A configuration example is provided below;
+### Configuration
+I switched configuration to using aeonbits OWNER, so configuration is now done a little differently.
+Normally I put my configuration files in my applications resources folder.
+
+To configure the MetricsRegistryBean you need a properties file called MetricsRegistryBeanConfig.properties an example
+below is provided -
 
 ```
-influxUrl=<influxdb url goes here>
-influxPort=<influxdb port goes here>
-influxUsername=<influxdb username goes here>
-influxPassword=<influxdb password goes here>
-influxDatabaseSchema=<schema in your influxdb instance>
-influxProtocol=<protocol to use for influxdb comms; e.g. http / https>
-slf4jReportFrequency=<how often to log to slf4j in seconds>
-influxReportFrequency=<how often to send reports to influxdb in seconds>
-enableSlf4jReporter=<true if you want to send to slf4j, false otherwise>
-enableInfluxReporter=<true if you want to send to influx, false otherwise>
-enableJvmCapture=<true if you want to capture jvm statistics, false otherwise>
-healthCheckNamesToRegister=<list of healthchecks you want to register, delimited by healthCheckNamesDelimiter>
-healthCheckNamesDelimiter=<delimiter to use for separating out the health check names>
-applicationName=<name of your application>
-clusterName=<name of your cluster>
-eclipseLinkProfileWeight=<one of ALL, HEAVY, NORMAL, or NONE>
+enableSlf4jReporter=true
+slf4jReporterNames=slf4jReporterBean
+enableScheduledReporters=false
+scheduledReporterNames=influxReporterBean
+enableJvmCapture=true
+healthCheckNamesToRegister=
+eclispseLinkProfileWeight=ALL
 ```
+If you have more than one reporter bean or healthcheck bean, then separate them by a ";".
+
+If you choose to use the default Slf4jReporterBean, then you'll want to also include the following configuration for it
+in the file Slf4jReporterBeanConfig.
+
+```
+slf4jReportFrequency=30
+```
+The frequency for this is in seconds.
+
+
+If you choose the default provided InfluxReporterBean then you'll need a InfluxReporterBeanConfig.properties with the
+following config -
+
+```
+influxUrl=url to your influxdb
+influxPort=port to use for your influxdb
+username=username to use for your influxdb
+password=password for your influxdb
+database=the database schema for your influxdb
+protocol=protocol to use for your influxdb(http / https)
+appName=appName to use for tagging
+clusterName=clusterName to use for tagging
+influxReportFrequency=frequency in seconds it should report
+```
+
+If you choose not to use the default reporters just implement the ReporterBean interface and provide the properties to
+those anyway you wish.
+
+Likewise with health checks, if you choose not to use the default health checks just write your own and extend HealthCheck
+from dropwizard.
+
+Then be sure to include an @Named("name_of_your_bean") annotation on it, so CDI can find it.
