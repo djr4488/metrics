@@ -160,7 +160,7 @@
                 <artifactId>coveralls-maven-plugin</artifactId>
                 <version>3.0.1</version>
                 <configuration>
-                    <repoToken>B4kipeqrDMj9gLEQPc98</repoToken>
+                    <repoToken>NXJYJB3k4Azxupq3qDkJ</repoToken>
                 </configuration>
             </plugin>
         </plugins>
