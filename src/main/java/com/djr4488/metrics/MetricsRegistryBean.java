@@ -12,9 +12,9 @@ import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
 import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
 import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
 import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
+import com.djr4488.metrics.config.Configurator;
 import com.djr4488.metrics.config.MetricsRegistryBeanConfig;
 import com.djr4488.metrics.reporters.ReporterBean;
-import org.aeonbits.owner.ConfigFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,6 +25,7 @@ import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.CDI;
+import javax.inject.Inject;
 import javax.inject.Named;
 import java.util.HashMap;
 import java.util.List;
@@ -43,7 +44,10 @@ public class MetricsRegistryBean {
     private List<String> scheduledReporterNames;
     private Boolean enableJvmCapture;
     private List<String> healthCheckNamesToRegister;
+    @Inject
     private Logger log;
+    @Inject
+    private Configurator configurator;
 
     public MetricsRegistryBean() {
     }
@@ -59,7 +63,7 @@ public class MetricsRegistryBean {
 
     private void initializeConfiguration() {
         log.debug("initializeConfiguration() initializing configuration");
-        MetricsRegistryBeanConfig cfg = ConfigFactory.create(MetricsRegistryBeanConfig.class);
+        MetricsRegistryBeanConfig cfg = configurator.getConfiguration(MetricsRegistryBeanConfig.class);
         this.enableSlf4jReporter = cfg.enableSlf4jReporter();
         this.slf4jReporterNames = cfg.slf4jReporterNames();
         this.enableScheduledReporters = cfg.enableScheduledReporters();
@@ -160,8 +164,14 @@ public class MetricsRegistryBean {
         return healthCheckRegistry;
     }
 
-
-
+    /**
+     * Method to help classes not managed by CDI to get CDI managed beans
+     * @param name name of the bean you are looking for; should be annotated with @Named("beanName")
+     * @param clazz the class type you are looking for BeanName.class
+     * @param <T> generics
+     * @return instance of BeanName.class
+     * @throws Exception if something goes horribly wrong I suppose it could get thrown
+     */
     public static <T> T getBeanByNameOfClass(String name, Class<T> clazz)
     throws Exception {
         BeanManager bm = CDI.current().getBeanManager();

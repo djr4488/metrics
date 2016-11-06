@@ -25,6 +25,4 @@ public interface MetricsRegistryBeanConfig extends Config {
     Boolean enableJvmCapture();
     @Separator(";")
     List<String> healthCheckNamesToRegister();
-    @DefaultValue("NONE")
-    String eclipseLinkProfileWeight();
 }

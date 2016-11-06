@@ -74,7 +74,7 @@ public class ConfiguratorTest extends TestCase {
     // enableScheduledReporters=false
     // scheduledReporterNames=influxReporterBean
     // enableJvmCapture=true
-    // healthCheckNamesToRegister=
+    // healthCheckNamesToRegister=databaseHealthCheck;jmsHealthCheck
     //when:
     // getting configuration for key
     //then:
@@ -85,10 +85,11 @@ public class ConfiguratorTest extends TestCase {
         assertNotNull(cfg);
         assertEquals(true, cfg.enableSlf4jReporter().booleanValue());
         assertEquals("slf4jReporterBean", cfg.slf4jReporterNames().get(0));
-        assertEquals(false, cfg.enableScheduledReporters().booleanValue());
+        assertEquals(true, cfg.enableScheduledReporters().booleanValue());
         assertEquals("influxReporterBean", cfg.scheduledReporterNames().get(0));
         assertEquals(true, cfg.enableJvmCapture().booleanValue());
-        assertTrue(cfg.healthCheckNamesToRegister().isEmpty());
+        assertEquals("databaseHealthCheck", cfg.healthCheckNamesToRegister().get(0));
+        assertEquals("jmsHealthCheck", cfg.healthCheckNamesToRegister().get(1));
     }
 
     //given: key=value
