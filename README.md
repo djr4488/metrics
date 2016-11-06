@@ -6,6 +6,7 @@ To provide a simplified mechanism for managing dropwizard metrics in a Java EE e
 
 ## Status
 * Build: [![Build Status](https://travis-ci.org/djr4488/metrics.svg?branch=master)](https://travis-ci.org/djr4488/metrics)
+* Coverage: [![Coverage Status](https://coveralls.io/repos/github/djr4488/metrics/badge.svg?branch=master)](https://coveralls.io/github/djr4488/metrics?branch=master)
 
 ## TODOs
 
