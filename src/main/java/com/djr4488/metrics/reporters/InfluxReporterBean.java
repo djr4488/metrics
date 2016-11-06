@@ -54,7 +54,7 @@ public class InfluxReporterBean implements ReporterBean {
         influxReporter.start(getConfiguration().influxReportFrequency(), TimeUnit.SECONDS);
     }
 
-    private String getLocalHostName() {
+    protected String getLocalHostName() {
         try {
             return InetAddress.getLocalHost().getHostName();
         } catch (UnknownHostException uhEx) {
@@ -67,11 +67,15 @@ public class InfluxReporterBean implements ReporterBean {
     }
 
     @Schedule(hour = "*", minute = "*/5")
-    public void startStopReporter() {
+    protected void startStopReporter() {
         if (getConfiguration().enableInfluxReporter()) {
             startReporter();
         } else {
             stopReporter();
         }
+    }
+
+    public boolean isReporterBeanEnabled() {
+        return getConfiguration().enableInfluxReporter();
     }
 }

@@ -7,6 +7,7 @@ import com.djr4488.metrics.config.Slf4jReporterBeanConfig;
 import org.aeonbits.owner.ConfigFactory;
 import org.slf4j.Logger;
 
+import javax.ejb.Schedule;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -45,5 +46,18 @@ public class Slf4jReporterBean implements ReporterBean {
 
     private Slf4jReporterBeanConfig getConfiguration() {
         return configurator.getConfiguration(Slf4jReporterBeanConfig.class);
+    }
+
+    @Schedule(hour = "*", minute = "*/5")
+    protected void startStopReporter() {
+        if (getConfiguration().enableSlf4jReporter()) {
+            startReporter();
+        } else {
+            stopReporter();
+        }
+    }
+
+    public boolean isReporterBeanEnabled() {
+        return getConfiguration().enableSlf4jReporter();
     }
 }

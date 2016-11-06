@@ -9,4 +9,5 @@ public interface ReporterBean {
     public void initialize(MetricRegistry metricRegistry);
     public void stopReporter();
     public void startReporter();
+    public boolean isReporterBeanEnabled();
 }

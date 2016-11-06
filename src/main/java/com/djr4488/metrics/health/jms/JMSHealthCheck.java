@@ -26,7 +26,7 @@ public class JMSHealthCheck extends HealthCheck {
 
     @Override
     protected Result check()
-            throws Exception {
+    throws Exception {
         Connection conn = factory.createConnection();
         conn.start();
         try {
@@ -35,7 +35,7 @@ public class JMSHealthCheck extends HealthCheck {
                 try {
                     try (MessageProducer msgProducer = session.createProducer(tempQueue)){
                         msgProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
-                        final String messageText = "Test message-" + System.currentTimeMillis();
+                        final String messageText = "Test message sent";
                         msgProducer.send(tempQueue, session.createTextMessage(messageText));
                         try (MessageConsumer consumer = session.createConsumer(tempQueue)){
                             TextMessage receivedMessage = (TextMessage)consumer.receive(millisToWait);

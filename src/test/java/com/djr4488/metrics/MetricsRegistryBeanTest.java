@@ -37,4 +37,10 @@ public class MetricsRegistryBeanTest extends TestCase {
         assertTrue(healthCheckNames.contains("jmsHealthCheck"));
         assertTrue(healthCheckNames.contains("thread-deadlock"));
     }
+
+    @Test
+    public void testMetricRegistryPopulated() {
+        SortedSet<String> metricNames = mrb.getMetricRegistry().getNames();
+        assertTrue(metricNames.contains("jvm.memory.heap.committed"));
+    }
 }
