@@ -43,7 +43,6 @@ public class MetricsRegistryBean {
     private List<String> scheduledReporterNames;
     private Boolean enableJvmCapture;
     private List<String> healthCheckNamesToRegister;
-    private String eclipseLinkProfileWeight;
     private Logger log;
 
     public MetricsRegistryBean() {
@@ -67,7 +66,6 @@ public class MetricsRegistryBean {
         this.scheduledReporterNames = cfg.scheduledReporterNames();
         this.enableJvmCapture = cfg.enableJvmCapture();
         this.healthCheckNamesToRegister = cfg.healthCheckNamesToRegister();
-        this.eclipseLinkProfileWeight = cfg.eclipseLinkProfileWeight();
     }
 
     private Map<String,HealthCheck> buildHealthChecksToRegisterMap() {
@@ -170,9 +168,5 @@ public class MetricsRegistryBean {
         Bean<T> bean = (Bean<T>) bm.getBeans(name).iterator().next();
         CreationalContext<T> ctx = bm.createCreationalContext(bean);
         return (T) bm.getReference(bean, clazz, ctx);
-    }
-    
-    public String getEclipseLinkProfileWeight() {
-        return eclipseLinkProfileWeight;
     }
 }

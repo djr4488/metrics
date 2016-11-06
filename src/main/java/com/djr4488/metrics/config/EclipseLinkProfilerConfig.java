@@ -8,7 +8,7 @@ import org.aeonbits.owner.Config;
 @Config.Sources({
         "classpath:InfluxReporterBeanConfig.properties"
 })
-public interface EclipseLinkProfilerConfig {
+public interface EclipseLinkProfilerConfig extends Config {
     @Config.DefaultValue("NONE")
     String eclipseLinkProfileWeight();
 }

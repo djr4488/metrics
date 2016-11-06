@@ -75,7 +75,6 @@ public class ConfiguratorTest extends TestCase {
     // scheduledReporterNames=influxReporterBean
     // enableJvmCapture=true
     // healthCheckNamesToRegister=
-    // eclispseLinkProfileWeight=ALL
     //when:
     // getting configuration for key
     //then:
@@ -90,7 +89,6 @@ public class ConfiguratorTest extends TestCase {
         assertEquals("influxReporterBean", cfg.scheduledReporterNames().get(0));
         assertEquals(true, cfg.enableJvmCapture().booleanValue());
         assertTrue(cfg.healthCheckNamesToRegister().isEmpty());
-        assertEquals("ALL", cfg.eclipseLinkProfileWeight());
     }
 
     //given: key=value
@@ -107,5 +105,19 @@ public class ConfiguratorTest extends TestCase {
         assertNotNull(cfg);
         assertEquals(30, cfg.slf4jReportFrequency().intValue());
         assertEquals(true, cfg.enableSlf4jReporter().booleanValue());
+    }
+
+    //given: key=value
+    //and: the following key value pairings
+    // eclipseLinkProfileWeight=NONE
+    //when:
+    // getting configuration for key
+    //then:
+    // expect value
+    @Test
+    public void testEclipseLinkProfilerConfiguration() {
+        EclipseLinkProfilerConfig cfg = configurator.getConfiguration(EclipseLinkProfilerConfig.class);
+        assertNotNull(cfg);
+        assertEquals("NONE", cfg.eclipseLinkProfileWeight());
     }
 }
