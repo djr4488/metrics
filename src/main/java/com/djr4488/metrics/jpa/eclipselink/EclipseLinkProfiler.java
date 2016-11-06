@@ -6,6 +6,8 @@ package com.djr4488.metrics.jpa.eclipselink;
  */
 import com.codahale.metrics.Timer;
 import com.djr4488.metrics.MetricsRegistryBean;
+import com.djr4488.metrics.config.Configurator;
+import com.djr4488.metrics.config.EclipseLinkProfilerConfig;
 import org.eclipse.persistence.internal.sessions.AbstractRecord;
 import org.eclipse.persistence.internal.sessions.AbstractSession;
 import org.eclipse.persistence.queries.DatabaseQuery;
@@ -35,7 +37,6 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
         this.operationTimings = new ConcurrentHashMap();
         this.operationStartTimesByThread = new ConcurrentHashMap();
         this.profileWeight = SessionProfiler.ALL;
-        //this.metricsRegistryBean = this.getMetricsRegistryBean();
     }
 
     public long getDumpTime() {
@@ -199,7 +200,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     @SuppressWarnings("unchecked")
-    public MetricsRegistryBean getMetricsRegistryBean() {
+    public synchronized MetricsRegistryBean getMetricsRegistryBean() {
         if (null == metricsRegistryBean) {
             try {
                 metricsRegistryBean = MetricsRegistryBean.getBeanByNameOfClass("metricsRegistryBean", MetricsRegistryBean.class);
@@ -211,7 +212,9 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public int getSessionProfiler() {
-        switch (getMetricsRegistryBean().getEclipseLinkProfileWeight()) {
+        Configurator configurator = new Configurator();
+        EclipseLinkProfilerConfig cfg = configurator.getConfiguration(EclipseLinkProfilerConfig.class);
+        switch (cfg.eclipseLinkProfileWeight()) {
             case "ALL":
                 return SessionProfiler.ALL;
             case "HEAVY":

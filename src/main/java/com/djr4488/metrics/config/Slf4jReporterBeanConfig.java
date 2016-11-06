@@ -11,4 +11,6 @@ import org.aeonbits.owner.Config;
 public interface Slf4jReporterBeanConfig extends Config {
     @DefaultValue("60")
     Integer slf4jReportFrequency();
+    @DefaultValue("false")
+    Boolean enableSlf4jReporter();
 }

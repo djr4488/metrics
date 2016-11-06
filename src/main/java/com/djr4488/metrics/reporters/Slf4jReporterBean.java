@@ -2,6 +2,7 @@ package com.djr4488.metrics.reporters;
 
 import com.codahale.metrics.MetricRegistry;
 import com.codahale.metrics.Slf4jReporter;
+import com.djr4488.metrics.config.Configurator;
 import com.djr4488.metrics.config.Slf4jReporterBeanConfig;
 import org.aeonbits.owner.ConfigFactory;
 import org.slf4j.Logger;
@@ -19,10 +20,12 @@ import java.util.concurrent.TimeUnit;
 public class Slf4jReporterBean implements ReporterBean {
     @Inject
     private Logger log;
+    @Inject
+    private Configurator configurator;
     private Slf4jReporter slf4jReporter;
 
     public void initialize(MetricRegistry metricRegistry) {
-        Slf4jReporterBeanConfig cfg = ConfigFactory.create(Slf4jReporterBeanConfig.class);
+        Slf4jReporterBeanConfig cfg = getConfiguration();
         slf4jReporter = Slf4jReporter.forRegistry(metricRegistry)
                 .outputTo(log)
                 .convertRatesTo(TimeUnit.SECONDS)
@@ -30,5 +33,17 @@ public class Slf4jReporterBean implements ReporterBean {
                 .withLoggingLevel(Slf4jReporter.LoggingLevel.TRACE)
                 .build();
         slf4jReporter.start(cfg.slf4jReportFrequency(), TimeUnit.SECONDS);
+    }
+
+    public void stopReporter() {
+        slf4jReporter.stop();
+    }
+
+    public void startReporter() {
+        slf4jReporter.start(getConfiguration().slf4jReportFrequency(), TimeUnit.SECONDS);
+    }
+
+    private Slf4jReporterBeanConfig getConfiguration() {
+        return configurator.getConfiguration(Slf4jReporterBeanConfig.class);
     }
 }

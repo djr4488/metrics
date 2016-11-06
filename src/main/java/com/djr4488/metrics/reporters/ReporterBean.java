@@ -7,4 +7,6 @@ import com.codahale.metrics.MetricRegistry;
  */
 public interface ReporterBean {
     public void initialize(MetricRegistry metricRegistry);
+    public void stopReporter();
+    public void startReporter();
 }

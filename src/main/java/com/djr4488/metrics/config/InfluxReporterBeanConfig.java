@@ -6,7 +6,7 @@ import org.aeonbits.owner.Config;
  * Created by djr4488 on 11/5/16.
  */
 @Config.Sources({
-        "classpath:META-INF/InfluxReporterBeanConfig.properties"
+        "classpath:InfluxReporterBeanConfig.properties"
 })
 public interface InfluxReporterBeanConfig extends Config {
     String influxUrl();
@@ -18,4 +18,6 @@ public interface InfluxReporterBeanConfig extends Config {
     String appName();
     String clusterName();
     Integer influxReportFrequency();
+    @DefaultValue("false")
+    Boolean enableInfluxReporter();
 }
