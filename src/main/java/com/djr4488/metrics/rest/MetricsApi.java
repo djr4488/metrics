@@ -47,7 +47,7 @@ public class MetricsApi {
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public String threadDump()
-            throws IOException {
+    throws IOException {
         log.info("threadDump() entered");
         try (OutputStream output = new ByteArrayOutputStream()) {
             ThreadDump threadDump = new ThreadDump(ManagementFactory.getThreadMXBean());
