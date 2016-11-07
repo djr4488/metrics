@@ -12,11 +12,17 @@ import junit.framework.TestCase;
 import org.jglue.cdiunit.ActivatedAlternatives;
 import org.jglue.cdiunit.AdditionalClasses;
 import org.jglue.cdiunit.CdiRunner;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import javax.annotation.PostConstruct;
 import javax.inject.Inject;
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.Persistence;
+import javax.persistence.PersistenceContext;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -37,13 +43,25 @@ public class DatabaseHealthCheckTest extends TestCase {
     private Configurator configurator;
     @Inject
     private MetricsRegistryBean mrb;
+    private static final String PERSISTENCE_UNIT = "jdbc/metrics_persistence_unit";
+
+    @Before
+    public void setup() {
+        EntityManagerFactory emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT);
+        EntityManager em = emf.createEntityManager();
+        em.getTransaction().begin();
+        em.createNativeQuery("INSERT INTO TEST_ENTITIES VALUES (1, 'test')").executeUpdate();
+        em.getTransaction().commit();
+    }
 
     @Test
     public void testDatabaseHealthCheckSuccess() {
         List<String> persistenceNames = new ArrayList<>();
-        persistenceNames.add("jdbc/metrics_persistence_unit");
+        persistenceNames.add(PERSISTENCE_UNIT);
+        persistenceNames.add(PERSISTENCE_UNIT);
         List<String> testSql = new ArrayList<>();
         testSql.add("SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS");
+        testSql.add("SELECT * FROM TEST_ENTITIES WHERE ID = 1");
         try {
             DatabaseHealthCheckConfig dhcConfig = mock(DatabaseHealthCheckConfig.class);
             MetricsRegistryBeanConfig mrbConfig = mock(MetricsRegistryBeanConfig.class);

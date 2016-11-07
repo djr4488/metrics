@@ -212,9 +212,15 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public int getSessionProfiler() {
-        Configurator configurator = getMetricsRegistryBean().getConfigurator();
-        EclipseLinkProfilerConfig cfg = configurator.getConfiguration(EclipseLinkProfilerConfig.class);
-        switch (cfg.eclipseLinkProfileWeight()) {
+        String profilerWeight;
+        try {
+            Configurator configurator = getMetricsRegistryBean().getConfigurator();
+            EclipseLinkProfilerConfig cfg = configurator.getConfiguration(EclipseLinkProfilerConfig.class);
+            profilerWeight = cfg.eclipseLinkProfileWeight();
+        } catch (Exception ex) {
+            profilerWeight = "";
+        }
+        switch (profilerWeight) {
             case "ALL":
                 return SessionProfiler.ALL;
             case "HEAVY":
@@ -224,7 +230,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
             case "NONE":
                 return SessionProfiler.NONE;
             default:
-                return SessionProfiler.ALL;
+                return SessionProfiler.NONE;
         }
     }
 }
