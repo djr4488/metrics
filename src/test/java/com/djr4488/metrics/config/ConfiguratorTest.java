@@ -20,7 +20,7 @@ public class ConfiguratorTest extends TestCase {
 
     //given: key=value
     //and: the following key value pairings
-    // contextLookupKey=java:openejb/PersistenceUnit/
+    // persistenceUnitNames=jdbc/metrics_persistence_unit
     //when:
     // getting configuration for key
     //then:
@@ -29,8 +29,8 @@ public class ConfiguratorTest extends TestCase {
     public void testConfiguratorDatabaseHealthCheckConfiguration() {
         DatabaseHealthCheckConfig dbConfig = configurator.getConfiguration(DatabaseHealthCheckConfig.class);
         assertNotNull(dbConfig);
-        assertNotNull(dbConfig.contextLookupKey());
-        assertEquals("java:openejb/PersistenceUnit/", dbConfig.contextLookupKey());
+        assertNotNull(dbConfig.persistenceUnitNames());
+        assertEquals("jdbc/metrics_persistence_unit", dbConfig.persistenceUnitNames().get(0));
     }
 
     /**

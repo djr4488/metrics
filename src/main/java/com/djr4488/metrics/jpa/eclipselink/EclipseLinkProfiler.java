@@ -212,7 +212,7 @@ public class EclipseLinkProfiler extends SessionProfilerAdapter implements Seria
     }
 
     public int getSessionProfiler() {
-        Configurator configurator = new Configurator();
+        Configurator configurator = getMetricsRegistryBean().getConfigurator();
         EclipseLinkProfilerConfig cfg = configurator.getConfiguration(EclipseLinkProfilerConfig.class);
         switch (cfg.eclipseLinkProfileWeight()) {
             case "ALL":

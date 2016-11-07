@@ -179,4 +179,8 @@ public class MetricsRegistryBean {
         CreationalContext<T> ctx = bm.createCreationalContext(bean);
         return (T) bm.getReference(bean, clazz, ctx);
     }
+
+    public Configurator getConfigurator() {
+        return configurator;
+    }
 }

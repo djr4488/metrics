@@ -2,6 +2,8 @@ package com.djr4488.metrics.config;
 
 import org.aeonbits.owner.Config;
 
+import java.util.List;
+
 /**
  * Created by djr4488 on 11/5/16.
  */
@@ -9,5 +11,8 @@ import org.aeonbits.owner.Config;
         "classpath:DatabaseHealthCheckConfig.properties"
 })
 public interface DatabaseHealthCheckConfig extends Config {
-    String contextLookupKey();
+    @Separator(";")
+    List<String> persistenceUnitNames();
+    @Separator(";")
+    List<String> testSqlByPersistenceName();
 }

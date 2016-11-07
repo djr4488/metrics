@@ -13,7 +13,7 @@ import static org.mockito.Mockito.mock;
  */
 @Alternative
 public class TestConfiguratorProducer {
-    Configurator configurator = mock(Configurator.class);
+    private static final Configurator configurator = mock(Configurator.class);
 
     @Produces
     public Configurator getMockConfigurator(InjectionPoint injectionPoint) {

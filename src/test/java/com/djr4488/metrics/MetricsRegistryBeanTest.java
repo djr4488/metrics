@@ -2,7 +2,6 @@ package com.djr4488.metrics;
 
 import com.djr4488.metrics.config.Configurator;
 import com.djr4488.metrics.health.database.DatabaseHealthCheck;
-import com.djr4488.metrics.health.database.DatabaseHealthCheckHelper;
 import com.djr4488.metrics.health.jms.JMSHealthCheck;
 import com.djr4488.metrics.reporters.InfluxReporterBean;
 import com.djr4488.metrics.reporters.Slf4jReporterBean;
@@ -21,7 +20,7 @@ import java.util.SortedSet;
  * Created by djr4488 on 11/6/16.
  */
 @RunWith(CdiRunner.class)
-@AdditionalClasses({Configurator.class, DatabaseHealthCheck.class, DatabaseHealthCheckHelper.class, JMSHealthCheck.class,
+@AdditionalClasses({Configurator.class, DatabaseHealthCheck.class, JMSHealthCheck.class,
                     InfluxReporterBean.class, Slf4jReporterBean.class})
 @ActivatedAlternatives({TestLogProducer.class})
 public class MetricsRegistryBeanTest extends TestCase {

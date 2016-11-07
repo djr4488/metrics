@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd"
+             version="2.1">
+    <persistence-unit name="jdbc/metrics_persistence_unit">
+        <provider>org.eclipse.persistence.jpa.PersistenceProvider</provider>
+        <jta-data-source>jdbc/metric_test</jta-data-source>
+        <exclude-unlisted-classes>false</exclude-unlisted-classes>
+        <properties>
+            <property
+                    name="eclipselink.target-database"
+                    value="HSQL"/>
+            <property
+                    name="eclipselink.logging.level.sql"
+                    value="FINE" />
+            <property
+                    name="eclipselink.logging.parameters"
+                    value="true" />
+            <property
+                    name="javax.persistence.jdbc.driver"
+                    value="org.hsqldb.jdbcDriver" />
+            <property
+                    name="javax.persistence.jdbc.url"
+                    value="jdbc:hsqldb:mem:." />
+            <property
+                    name="javax.persistence.jdbc.user"
+                    value="sa" />
+            <property
+                    name="javax.persistence.jdbc.password"
+                    value="" />
+            <property
+                    name="eclipselink.ddl-generation"
+                    value="drop-and-create-tables" />
+            <property
+                    name="eclipselink.weaving.changetracking"
+                    value="true" />
+            <property
+                    name="javax.persistence.query.timeout"
+                    value="15000" />
+            <property
+                    name="eclipselink.cache.size.default"
+                    value="10000" />
+            <property
+                    name="eclipselink.profiler"
+                    value="com.djr4488.metrics.jpa.eclipselink.EclipseLinkProfiler"/>
+        </properties>
+    </persistence-unit>
+</persistence>

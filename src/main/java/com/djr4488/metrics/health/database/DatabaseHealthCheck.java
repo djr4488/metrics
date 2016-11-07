@@ -10,31 +10,31 @@ import com.djr4488.metrics.config.DatabaseHealthCheckConfig;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.persistence.EntityManagerFactory;
-import java.util.Map;
+import javax.persistence.Persistence;
+import java.util.List;
 
 @ApplicationScoped
 @Named("databaseHealthCheck")
 public class DatabaseHealthCheck extends HealthCheck {
-    private static final String HEALTH_CHECK_QUERY = "SELECT 1";
-    @Inject
-    private DatabaseHealthCheckHelper databaseHealthCheckHelper;
     @Inject
     private Configurator configurator;
 
     @Override
     protected Result check()
     throws Exception {
-        Map<String, Object> mapOfEMFs = databaseHealthCheckHelper.getEntityManagerFactoryMap(getContextLookupKeyFromConfig());
-        for (Map.Entry<String, Object> nameToFactory : mapOfEMFs.entrySet()) {
-            ((EntityManagerFactory) nameToFactory.getValue()).createEntityManager().createNativeQuery(HEALTH_CHECK_QUERY).getSingleResult();
+        List<String> persistenceUnitNames = getConfiguration().persistenceUnitNames();
+        List<String> testSqlByPersistenceName = getConfiguration().testSqlByPersistenceName();
+        int index = 0;
+        for (String persistenceUnitName : persistenceUnitNames) {
+            Persistence.createEntityManagerFactory(persistenceUnitName).createEntityManager()
+                    .createNativeQuery(testSqlByPersistenceName.get(index)).getSingleResult();
+            index++;
         }
         return Result.healthy();
     }
 
-    private String getContextLookupKeyFromConfig() {
-        DatabaseHealthCheckConfig cfg = configurator.getConfiguration(DatabaseHealthCheckConfig.class);
-        return cfg.contextLookupKey();
+    private DatabaseHealthCheckConfig getConfiguration() {
+        return configurator.getConfiguration(DatabaseHealthCheckConfig.class);
     }
 }
 
