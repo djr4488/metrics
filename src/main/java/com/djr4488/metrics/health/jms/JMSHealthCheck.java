@@ -27,18 +27,17 @@ public class JMSHealthCheck extends HealthCheck {
     @Override
     protected Result check()
     throws Exception {
-        Connection conn = factory.createConnection();
-        conn.start();
-        try {
-            try (Session session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)){
+        try(Connection conn = factory.createConnection()) {
+            conn.start();
+            try (Session session = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
                 TemporaryQueue tempQueue = session.createTemporaryQueue();
                 try {
-                    try (MessageProducer msgProducer = session.createProducer(tempQueue)){
+                    try (MessageProducer msgProducer = session.createProducer(tempQueue)) {
                         msgProducer.setDeliveryMode(DeliveryMode.NON_PERSISTENT);
                         final String messageText = "Test message sent";
                         msgProducer.send(tempQueue, session.createTextMessage(messageText));
-                        try (MessageConsumer consumer = session.createConsumer(tempQueue)){
-                            TextMessage receivedMessage = (TextMessage)consumer.receive(millisToWait);
+                        try (MessageConsumer consumer = session.createConsumer(tempQueue)) {
+                            TextMessage receivedMessage = (TextMessage) consumer.receive(millisToWait);
                             if (null != receivedMessage && messageText.equals(receivedMessage.getText())) {
                                 return Result.healthy();
                             } else {
@@ -51,8 +50,6 @@ public class JMSHealthCheck extends HealthCheck {
                     tempQueue.delete();
                 }
             }
-        } finally {
-            conn.close();
         }
     }
 }
