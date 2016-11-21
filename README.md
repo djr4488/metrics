@@ -7,7 +7,7 @@ To provide a simplified mechanism for managing dropwizard metrics in a Java EE e
 ## Status
 * Build: [![Build Status](https://travis-ci.org/djr4488/metrics.svg?branch=master)](https://travis-ci.org/djr4488/metrics)
 * Coverage: [![Coverage Status](https://coveralls.io/repos/github/djr4488/metrics/badge.svg?branch=master)](https://coveralls.io/github/djr4488/metrics?branch=master)
-* Maintenance: [![Percentage of issues still open](http://isitmaintained.com/badge/open/djr4488/metrics.svg)](http://isitmaintained.com/project/djr4488/metrics "Percentage of issues still open")
+* Maintenance: [![Percentage of issues still open](http://isitmaintained.com/badge/open/djr4488/metrics.svg)](http://isitmaintained.com/project/djr4488/metrics "Percentage of issues still open")  [![Average time to resolve an issue](http://isitmaintained.com/badge/resolution/djr4488/metrics.svg)](http://isitmaintained.com/project/djr4488/metrics "Average time to resolve an issue")
 
 ## TODOs
 
