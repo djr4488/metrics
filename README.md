@@ -30,22 +30,26 @@ To provide a simplified mechanism for managing dropwizard metrics in a Java EE e
 I switched configuration to using aeonbits OWNER, so configuration is now done a little differently.
 Normally I put my configuration files in my applications resources folder.
 
+#### MetricsRegistryBean Configuration
 To configure the MetricsRegistryBean you need a properties file called MetricsRegistryBeanConfig.properties an example
 below is provided -
 
 ```
 enableSlf4jReporter=true
 slf4jReporterNames=slf4jReporterBean
-enableScheduledReporters=false
+enableScheduledReporters=true
 scheduledReporterNames=influxReporterBean
 enableJvmCapture=true
-healthCheckNamesToRegister=
-eclispseLinkProfileWeight=ALL
+healthCheckNamesToRegister=databaseHealthCheck;jmsHealthCheck
 ```
 If you have more than one reporter bean or healthcheck bean, then separate them by a ";".
 
-If you choose to use the default Slf4jReporterBean, then you'll want to also include the following configuration for it
-in the file Slf4jReporterBeanConfig.
+#### Reporter Bean Configurations
+Currently I have two reporter beans configured.  You can also write your own, but if you choose to use the two I have provided, then their configuration would look like the following.
+
+To write your own reporter bean, simply implement the "ReporterBean" interface and give your class an @Named("whatEverNameYouWant") annotation.  Then you can add your bean name to the scheduledReporterNames if not using an slf4jReporterBean, or if you are using an slf4jReporterBean then you can add it there.
+
+First the Slf4jReporterBean;
 
 ```
 slf4jReportFrequency=30
@@ -53,25 +57,29 @@ slf4jReportFrequency=30
 The frequency for this is in seconds.
 
 
-If you choose the default provided InfluxReporterBean then you'll need a InfluxReporterBeanConfig.properties with the
-following config -
+Second the InfluxReporterBean
 
 ```
-influxUrl=url to your influxdb
-influxPort=port to use for your influxdb
-username=username to use for your influxdb
-password=password for your influxdb
-database=the database schema for your influxdb
-protocol=protocol to use for your influxdb(http / https)
-appName=appName to use for tagging
-clusterName=clusterName to use for tagging
-influxReportFrequency=frequency in seconds it should report
+influxUrl=influxdb.url
+influxPort=443
+username=influxUserName
+password=influxPassword
+database=metricsDatabase
+protocol=https
+appName=metrics_extensions
+clusterName=metrics_cluster
+influxReportFrequency=30
+enableInfluxReporter=false
+```
+The frequency for this is in seconds as well.
+
+#### Health checks configuration
+With health checks I have provided two implementations one for database healthcheck which is configured in the tests to hsqldb.  I have also provided JMS health check bean as well.  You need to configure the MetricsRegistryBean to include the names of the healthchecks you want to provide.  See the above MetricsRegistryBean configuration and healthCheckNamesToRegister for an example.
+
+Below is an example configuration for the databaseHealthCheck.  There is no needed configuration for the JMS healthcheck as it will create a temporary queue itself.
+```
+persistenceUnitNames=jdbc/metrics_persistence_unit
+testSqlByPersistenceName=SELECT 1 FROM INFORMATION_SCHEMA.SYSTEM_USERS
 ```
 
-If you choose not to use the default reporters just implement the ReporterBean interface and provide the properties to
-those anyway you wish.
 
-Likewise with health checks, if you choose not to use the default health checks just write your own and extend HealthCheck
-from dropwizard.
-
-Then be sure to include an @Named("name_of_your_bean") annotation on it, so CDI can find it.
